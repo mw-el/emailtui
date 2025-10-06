@@ -85,28 +85,45 @@ func decodeHeader(header string) string {
 }
 
 func connect(cfg *config.Config) (*client.Client, error) {
-	var imapServer string
-	var imapPort int
-
-	switch cfg.ServiceProvider {
-	case "gmail":
-		imapServer = "imap.gmail.com"
-		imapPort = 993
-	case "icloud":
-		imapServer = "imap.mail.me.com"
-		imapPort = 993
-	default:
-		return nil, fmt.Errorf("unsupported service_provider: %s", cfg.ServiceProvider)
+	// Get the active account
+	account, err := cfg.GetActiveAccount()
+	if err != nil {
+		return nil, fmt.Errorf("failed to get active account: %w", err)
 	}
 
-	addr := fmt.Sprintf("%s:%d", imapServer, imapPort)
+	var addr string
+
+	// Check if custom IMAP server is provided
+	if account.IMAPServerAddress != "" {
+		port := account.IMAPPort
+		if port == "" {
+			port = "993" // Default IMAP SSL port
+		}
+		addr = fmt.Sprintf("%s:%s", account.IMAPServerAddress, port)
+	} else {
+		// Use known provider mappings
+		switch account.ServiceProvider {
+		case "gmail":
+			addr = "imap.gmail.com:993"
+		case "icloud":
+			addr = "imap.mail.me.com:993"
+		case "outlook", "hotmail":
+			addr = "outlook.office365.com:993"
+		case "yahoo":
+			addr = "imap.mail.yahoo.com:993"
+		default:
+			return nil, fmt.Errorf("unsupported service_provider: %s. Please use 'custom' and provide imap_server_address", account.ServiceProvider)
+		}
+	}
+
 	c, err := client.DialTLS(addr, nil)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to connect to IMAP server %s: %w", addr, err)
 	}
 
-	if err := c.Login(cfg.Email, cfg.Password); err != nil {
-		return nil, err
+	if err := c.Login(account.Email, account.Password); err != nil {
+		c.Logout()
+		return nil, fmt.Errorf("failed to login: %w", err)
 	}
 
 	return c, nil
@@ -392,8 +409,13 @@ func DeleteEmail(cfg *config.Config, uid uint32) error {
 }
 
 func ArchiveEmail(cfg *config.Config, uid uint32) error {
+	account, err := cfg.GetActiveAccount()
+	if err != nil {
+		return fmt.Errorf("failed to get active account: %w", err)
+	}
+
 	var archiveMailbox string
-	switch cfg.ServiceProvider {
+	switch account.ServiceProvider {
 	case "gmail":
 		archiveMailbox = "[Gmail]/All Mail"
 	default:

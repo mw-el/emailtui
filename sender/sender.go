@@ -28,25 +28,37 @@ func generateMessageID(from string) string {
 
 // SendEmail constructs a multipart message with plain text, HTML, embedded images, and attachments.
 func SendEmail(cfg *config.Config, to []string, subject, plainBody, htmlBody string, images map[string][]byte, attachments map[string][]byte, inReplyTo string, references []string) error {
+	// Get the active account
+	account, err := cfg.GetActiveAccount()
+	if err != nil {
+		return fmt.Errorf("failed to get active account: %w", err)
+	}
+
 	var smtpServer string
 	var smtpPort int
 
-	switch cfg.ServiceProvider {
+	switch account.ServiceProvider {
 	case "gmail":
 		smtpServer = "smtp.gmail.com"
 		smtpPort = 587
 	case "icloud":
 		smtpServer = "smtp.mail.me.com"
 		smtpPort = 587
+	case "outlook", "hotmail":
+		smtpServer = "smtp.office365.com"
+		smtpPort = 587
+	case "yahoo":
+		smtpServer = "smtp.mail.yahoo.com"
+		smtpPort = 587
 	default:
-		return fmt.Errorf("unsupported or missing service_provider in config.json: %s", cfg.ServiceProvider)
+		return fmt.Errorf("unsupported or missing service_provider in config.json: %s", account.ServiceProvider)
 	}
 
-	auth := smtp.PlainAuth("", cfg.Email, cfg.Password, smtpServer)
+	auth := smtp.PlainAuth("", account.Email, account.Password, smtpServer)
 
-	fromHeader := cfg.Email
-	if cfg.Name != "" {
-		fromHeader = fmt.Sprintf("%s <%s>", cfg.Name, cfg.Email)
+	fromHeader := account.Email
+	if account.Name != "" {
+		fromHeader = fmt.Sprintf("%s <%s>", account.Name, account.Email)
 	}
 
 	// Main message buffer
@@ -59,7 +71,7 @@ func SendEmail(cfg *config.Config, to []string, subject, plainBody, htmlBody str
 		"To":           to[0],
 		"Subject":      subject,
 		"Date":         time.Now().Format(time.RFC1123Z),
-		"Message-ID":   generateMessageID(cfg.Email),
+		"Message-ID":   generateMessageID(account.Email),
 		"Content-Type": "multipart/mixed; boundary=" + mainWriter.Boundary(),
 	}
 
@@ -162,5 +174,5 @@ func SendEmail(cfg *config.Config, to []string, subject, plainBody, htmlBody str
 	mainWriter.Close() // Finish the main message
 
 	addr := fmt.Sprintf("%s:%d", smtpServer, smtpPort)
-	return smtp.SendMail(addr, auth, cfg.Email, to, msg.Bytes())
+	return smtp.SendMail(addr, auth, account.Email, to, msg.Bytes())
 }
