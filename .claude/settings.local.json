@@ -1,0 +1,40 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:email-cli.andrinoff.com)",
+      "Bash(go:*)",
+      "Bash(sudo apt:*)",
+      "Bash(sudo apt install:*)",
+      "Bash(snap install:*)",
+      "Read(//home/matthias/**)",
+      "Bash(export PATH=$HOME/go/bin:$PATH)",
+      "Bash(git clone:*)",
+      "Bash(cp:*)",
+      "Bash(/miniconda3/bin/conda create -n emailtui python=3.11 -y)",
+      "Bash(~/miniconda3/bin/conda create:*)",
+      "Bash(rm:*)",
+      "Bash(git init:*)",
+      "Bash(git add:*)",
+      "Bash(git commit:*)",
+      "Bash(gh repo create:*)",
+      "Bash(git push:*)",
+      "Bash(~/miniconda3/envs/emailtui/bin/python -c \"import PIL; print(PIL.__version__)\")",
+      "Bash(~/miniconda3/envs/emailtui/bin/pip install Pillow -q)",
+      "Read(//tmp/**)",
+      "Bash(~/miniconda3/envs/emailtui/bin/python create_icon.py assets/logo.png emailtui.png)",
+      "Bash(~/miniconda3/envs/emailtui/bin/python create_icon.py assets/logo.png emailtui.png 300)",
+      "Bash(~/miniconda3/envs/emailtui/bin/python create_icon.py assets/logo.png emailtui.png 450)",
+      "Bash(~/miniconda3/envs/emailtui/bin/pip uninstall Pillow -y -q)",
+      "Bash(~/miniconda3/envs/emailtui/bin/python create_icon.py assets/logo.png emailtui.png 450 1.4)",
+      "Bash(~/miniconda3/envs/emailtui/bin/python create_icon.py assets/logo.png emailtui.png 450 0.20)",
+      "Bash(chmod:*)",
+      "Bash(nslookup:*)",
+      "Bash(host:*)",
+      "Bash(for host in mail.schreibszene.ch smtp.schreibszene.ch pop.schreibszene.ch schreibszene.ch)",
+      "Bash(do echo \"Testing $host:\")",
+      "Bash(done)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
