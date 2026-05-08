@@ -34,23 +34,11 @@ func SendEmail(cfg *config.Config, to []string, subject, plainBody, htmlBody str
 		return fmt.Errorf("failed to get active account: %w", err)
 	}
 
-	var smtpServer string
-	var smtpPort int
-
-	switch account.ServiceProvider {
-	case "gmail":
-		smtpServer = "smtp.gmail.com"
-		smtpPort = 587
-	case "icloud":
-		smtpServer = "smtp.mail.me.com"
-		smtpPort = 587
-	case "outlook", "hotmail":
-		smtpServer = "smtp.office365.com"
-		smtpPort = 587
-	case "yahoo":
-		smtpServer = "smtp.mail.yahoo.com"
-		smtpPort = 587
-	default:
+	smtpServer, smtpPort := account.SMTPServer()
+	if smtpServer == "" {
+		if account.ServiceProvider == "custom" {
+			return fmt.Errorf("service_provider 'custom' requires 'smtp_server_address' in config.json")
+		}
 		return fmt.Errorf("unsupported or missing service_provider in config.json: %s", account.ServiceProvider)
 	}
 

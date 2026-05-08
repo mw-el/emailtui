@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"os"
 	"path/filepath"
+	"strconv"
 )
 
 // Account stores a single email account configuration.
@@ -15,6 +16,8 @@ type Account struct {
 	Name              string `json:"name"`
 	IMAPServerAddress string `json:"imap_server_address,omitempty"` // Custom IMAP server address (optional)
 	IMAPPort          string `json:"imap_port,omitempty"`           // Custom IMAP port (optional, defaults to 993)
+	SMTPServerAddress string `json:"smtp_server_address,omitempty"` // Custom SMTP server address (optional, used when service_provider="custom")
+	SMTPPort          string `json:"smtp_port,omitempty"`           // Custom SMTP port (optional, defaults to 587 for STARTTLS)
 	AccountName       string `json:"account_name,omitempty"`        // Friendly name for the account (optional)
 }
 
@@ -27,6 +30,8 @@ type Config struct {
 	Name              string `json:"name,omitempty"`
 	IMAPServerAddress string `json:"imap_server_address,omitempty"`
 	IMAPPort          string `json:"imap_port,omitempty"`
+	SMTPServerAddress string `json:"smtp_server_address,omitempty"`
+	SMTPPort          string `json:"smtp_port,omitempty"`
 
 	// Multi-account mode
 	Accounts       []Account `json:"accounts,omitempty"`
@@ -105,6 +110,8 @@ func (c *Config) GetActiveAccount() (*Account, error) {
 			Name:              c.Name,
 			IMAPServerAddress: c.IMAPServerAddress,
 			IMAPPort:          c.IMAPPort,
+			SMTPServerAddress: c.SMTPServerAddress,
+			SMTPPort:          c.SMTPPort,
 		}, nil
 	}
 
@@ -174,4 +181,32 @@ func (c *Config) IMAPServer() string {
 		return ""
 	}
 	return acc.IMAPServer()
+}
+
+// SMTPServer returns the SMTP host and port for an account.
+// For service_provider="custom" the SMTPServerAddress takes precedence and the
+// port falls back to 587 (STARTTLS) when SMTPPort is empty or unparseable.
+// For known providers the values are hardcoded analogously to IMAPServer().
+// Returns ("", 0) when the configuration cannot determine a server.
+func (a *Account) SMTPServer() (string, int) {
+	if a.SMTPServerAddress != "" {
+		port := 587
+		if a.SMTPPort != "" {
+			if p, err := strconv.Atoi(a.SMTPPort); err == nil {
+				port = p
+			}
+		}
+		return a.SMTPServerAddress, port
+	}
+	switch a.ServiceProvider {
+	case "gmail":
+		return "smtp.gmail.com", 587
+	case "icloud":
+		return "smtp.mail.me.com", 587
+	case "outlook", "hotmail":
+		return "smtp.office365.com", 587
+	case "yahoo":
+		return "smtp.mail.yahoo.com", 587
+	}
+	return "", 0
 }
