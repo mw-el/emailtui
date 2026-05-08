@@ -1,1 +1,4 @@
 go.sum
+
+# Build-Artefakte (werden von install.sh / 'go build' lokal erzeugt)
+emailtui

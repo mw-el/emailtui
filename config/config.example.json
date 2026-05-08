@@ -1,0 +1,33 @@
+{
+  "_comment_1_format":   "EmailTUI Konfigurationsdatei. Mehrere Accounts werden im 'accounts'-Array angelegt. Felder mit Prefix '_comment_' werden vom Parser ignoriert (reine Hinweise).",
+  "_comment_2_active":   "'active_account' ist der 0-basierte Index. 0 = erster Account im Array, 1 = zweiter, ...",
+  "_comment_3_provider": "service_provider: einer von 'gmail' | 'icloud' | 'outlook' | 'hotmail' | 'yahoo' (bekannte Server) ODER 'custom' fuer eigenen IMAP-Server.",
+  "_comment_4_custom":   "Bei service_provider='custom' zusaetzlich 'imap_server_address' (z.B. 'imap.example.com') und optional 'imap_port' (Default 993) setzen.",
+  "_comment_5_password": "WICHTIG: Bei Gmail / Outlook / iCloud mit 2FA ein App-Passwort verwenden, NICHT das Hauptpasswort. Gmail-Anleitung: https://myaccount.google.com/apppasswords",
+  "_comment_6_smtp":     "Hinweis: SENDEN funktioniert aktuell nur mit den bekannten Providern (gmail, icloud, outlook, hotmail, yahoo). 'custom' kann nur empfangen, nicht senden.",
+  "_comment_7_security": "Datei sollte 0600-Permissions haben (chmod 600 ~/.config/email-cli/config.json) und niemals committed/weitergegeben werden.",
+
+  "active_account": 0,
+  "accounts": [
+    {
+      "_comment":            "Account 1 - bitte alle leeren Felder ausfuellen.",
+      "account_name":        "Account 1 (umbenennen)",
+      "service_provider":    "",
+      "email":               "",
+      "password":            "",
+      "name":                "",
+      "imap_server_address": "",
+      "imap_port":           ""
+    },
+    {
+      "_comment":            "Account 2 - optional. Wenn nicht benoetigt: diesen ganzen Block (inkl. Kommas) loeschen.",
+      "account_name":        "Account 2 (umbenennen)",
+      "service_provider":    "",
+      "email":               "",
+      "password":            "",
+      "name":                "",
+      "imap_server_address": "",
+      "imap_port":           ""
+    }
+  ]
+}
