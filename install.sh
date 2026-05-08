@@ -136,6 +136,9 @@ build_app() {
     log "baue Binary ./emailtui ..."
     go build -o emailtui main.go
     ok "Binary gebaut: $SCRIPT_DIR/emailtui"
+    log "baue Binary ./sendmail (CLI fuer den 'email-an-mich' Skill) ..."
+    go build -o sendmail ./cmd/sendmail
+    ok "Binary gebaut: $SCRIPT_DIR/sendmail"
 }
 
 # --- Config-Setup -------------------------------------------------------------

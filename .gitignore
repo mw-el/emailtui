@@ -1,4 +1,7 @@
 go.sum
 
 # Build-Artefakte (werden von install.sh / 'go build' lokal erzeugt)
-emailtui
+# Fuehrender Slash = nur im Repo-Root, damit cmd/sendmail/ als Verzeichnis
+# nicht versehentlich mit-ignoriert wird.
+/emailtui
+/sendmail
