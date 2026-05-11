@@ -163,6 +163,23 @@ setup_config() {
     ok "Config-Template kopiert nach $config_file"
 }
 
+# --- Skill-Installation -------------------------------------------------------
+
+install_skill() {
+    local skill_src="$SCRIPT_DIR/skills/email-an-mich/SKILL.md"
+    local skill_dir="$HOME/.claude/skills/email-an-mich"
+    local skill_dst="$skill_dir/SKILL.md"
+
+    if [ ! -f "$skill_src" ]; then
+        warn "Skill-Quelle nicht gefunden: $skill_src — ueberspringe Skill-Install."
+        return
+    fi
+
+    mkdir -p "$skill_dir"
+    cp "$skill_src" "$skill_dst"
+    ok "Skill 'email-an-mich' installiert: $skill_dst"
+}
+
 # --- Main ---------------------------------------------------------------------
 
 OS="$(detect_os)"
@@ -171,6 +188,7 @@ log "Plattform: $OS"
 ensure_go
 build_app
 setup_config
+install_skill
 
 cat <<EOF
 
