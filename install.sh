@@ -154,13 +154,133 @@ setup_config() {
     chmod 700 "$config_dir" 2>/dev/null || true
 
     if [ -f "$config_file" ]; then
-        ok "Config existiert schon ($config_file) — wird NICHT ueberschrieben."
+        ok "Config existiert schon ($config_file) — wird NICHT angetastet."
         return
     fi
 
+    # Template als Sicherheits-Fallback hinlegen — wird ggf. von
+    # prompt_credentials() ueberschrieben, falls der User Daten eingibt.
     cp "$template" "$config_file"
     chmod 600 "$config_file"
     ok "Config-Template kopiert nach $config_file"
+
+    prompt_credentials "$config_file"
+}
+
+# JSON-Escape fuer String-Werte (Backslash + doppelte Anfuehrungszeichen).
+json_escape() {
+    printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g'
+}
+
+# Schreibt die Config-Datei mit den abgefragten Werten.
+write_config() {
+    local file="$1" email="$2" name="$3" provider="$4" password="$5" imap_server="$6" smtp_server="$7"
+
+    cat > "$file" <<EOF
+{
+  "_comment_1_format":   "EmailTUI Konfigurationsdatei. Mehrere Accounts werden im 'accounts'-Array angelegt. Felder mit Prefix '_comment_' werden vom Parser ignoriert.",
+  "_comment_2_active":   "'active_account' ist der 0-basierte Index.",
+  "_comment_3_provider": "service_provider: gmail | icloud | outlook | hotmail | yahoo | custom.",
+  "_comment_4_custom":   "Bei service_provider='custom' zusaetzlich 'imap_server_address' und 'smtp_server_address' setzen.",
+  "_comment_5_password": "WICHTIG: Bei Gmail / Outlook / iCloud mit 2FA ein App-Passwort verwenden. Anleitung Gmail: https://myaccount.google.com/apppasswords",
+  "_comment_6_ports":    "imap_port Default 993; smtp_port 587 (STARTTLS) oder 465 (implizites TLS).",
+  "_comment_7_security": "Datei hat 0600-Permissions und sollte niemals committed/weitergegeben werden.",
+
+  "active_account": 0,
+  "accounts": [
+    {
+      "_comment":            "Per install.sh angelegter Account. Felder bei Bedarf editieren.",
+      "account_name":        "$(json_escape "$name")",
+      "service_provider":    "$(json_escape "$provider")",
+      "email":               "$(json_escape "$email")",
+      "password":            "$(json_escape "$password")",
+      "name":                "$(json_escape "$name")",
+      "imap_server_address": "$(json_escape "$imap_server")",
+      "imap_port":           "993",
+      "smtp_server_address": "$(json_escape "$smtp_server")",
+      "smtp_port":           "587"
+    }
+  ]
+}
+EOF
+}
+
+# Liste der Felder, die der User noch nachtragen muss.
+missing_fields_hint() {
+    local config_file="$1"
+    warn "Bitte folgende Felder in $config_file ergaenzen:"
+    warn "  - email                Mail-Adresse"
+    warn "  - service_provider     gmail | icloud | outlook | hotmail | yahoo | custom"
+    warn "  - password             (bei 2FA: App-Passwort)"
+    warn "  - name                 Anzeigename"
+    warn "  - imap_server_address  (nur bei custom; z.B. mail.<deine-domain>)"
+    warn "  - smtp_server_address  (nur bei custom; z.B. mail.<deine-domain>)"
+}
+
+prompt_credentials() {
+    local config_file="$1"
+
+    # Nur in echter Terminal-Sitzung fragen. In Pipes/CI: skippen.
+    if [ ! -t 0 ]; then
+        warn "Keine interaktive Sitzung — Account-Abfrage uebersprungen."
+        missing_fields_hint "$config_file"
+        return
+    fi
+
+    echo
+    log "Account-Daten abfragen. ENTER ohne Eingabe = Feld ueberspringen."
+    log "Bei Skip bleibt das Template aktiv und du ergaenzt manuell."
+    echo
+
+    local email name provider password imap_server smtp_server domain
+
+    printf "E-Mail-Adresse:    "
+    read -r email
+
+    printf "Anzeigename:       "
+    read -r name
+
+    printf "Provider [custom]  (gmail/icloud/outlook/hotmail/yahoo/custom): "
+    read -r provider
+    [ -z "$provider" ] && provider="custom"
+
+    # Passwort verdeckt — read -s ist Bash-builtin, auf Mac bash 3.2 ok.
+    printf "Passwort (verdeckt, leer = spaeter eintragen): "
+    read -r -s password
+    echo
+
+    # Bei custom: Server abfragen mit mail.<domain> als Vorschlag.
+    if [ "$provider" = "custom" ] && [ -n "$email" ]; then
+        domain="${email#*@}"
+        printf "IMAP-Server [mail.%s]: " "$domain"
+        read -r imap_server
+        [ -z "$imap_server" ] && imap_server="mail.$domain"
+
+        printf "SMTP-Server [mail.%s]: " "$domain"
+        read -r smtp_server
+        [ -z "$smtp_server" ] && smtp_server="mail.$domain"
+    fi
+
+    # Wenn weder email noch provider gesetzt: User hat komplett geskipt.
+    if [ -z "$email" ] && [ -z "$name" ] && [ -z "$password" ]; then
+        warn "Keine Account-Daten eingegeben — Template bleibt aktiv."
+        missing_fields_hint "$config_file"
+        return
+    fi
+
+    write_config "$config_file" "$email" "$name" "$provider" "$password" "$imap_server" "$smtp_server"
+    chmod 600 "$config_file"
+    ok "Account-Daten geschrieben nach $config_file"
+
+    # Nachtraegliche Pflicht-Warnungen fuer einzelne fehlende Felder.
+    local missing=()
+    [ -z "$email" ]    && missing+=("email")
+    [ -z "$password" ] && missing+=("password")
+    [ -z "$name" ]     && missing+=("name")
+    if [ "${#missing[@]}" -gt 0 ]; then
+        warn "Folgende Felder sind noch leer und muessen vor dem ersten Mailversand"
+        warn "in $config_file ergaenzt werden: ${missing[*]}"
+    fi
 }
 
 # --- Skill-Installation -------------------------------------------------------
